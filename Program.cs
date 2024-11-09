@@ -36,6 +36,7 @@ app.MapGet("/", (HttpContext ctx) =>
 		return e("html", e("body", e("p", "still scrapin'..."))).ToString();
 	}
 
+	// TODO: fix null pointer deref
 	Array.Sort(feed.Channel.Items, (r, l) => DateTime.Compare(l.PubDate.Value, r.PubDate.Value));
 	var items = e("ul",
 		feed.Channel.Items.Where(item => item.Title != null && item.Link != null).Select(item => e("li", 
