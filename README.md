@@ -7,8 +7,8 @@ I habitually ignore my note taking app, so maybe making a publicly accessible RS
 ## Plan
 
 - [X] Basic RSS display and periodic reading.
-- [] Read servers from a file, more details, better design.
-- [] Store RSS data and diff changes. (eg. `<item>`s that disappeared or name changes?).
+- [ ] Read servers from a file, more details, better design.
+- [ ] Store RSS data and diff changes. (eg. `<item>`s that disappeared or name changes?).
 
 
 ## Deploying (on my Alpine Linux)
