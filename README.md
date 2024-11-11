@@ -1,4 +1,4 @@
-# CSRSS - my cute uwu C# RSS reader
+# csrss - my cute uwu C# RSS reader
 
 I realized I want to kind of remember some pretty good sites with okay articles.
 I habitually ignore my note taking app, so maybe making a publicly accessible RSS reader will help.
@@ -24,9 +24,11 @@ Example OpenRC service (as `/etc/init.d/csrss`):
 
 name="csrss"
 command="dotnet"
-command_args="/usr/local/bin/csrss/csrss.dll --urls=http://localhost:6969"
+command_args="/usr/local/bin/csrss/csrss.dll --urls=http://localhost:6969 /usr/local/var/csrss/rss"  # note, that the file must be after `--urls` - for some reason WebApplication/Kestrel stops parsing args when it detects an unkown option.
 pidfile="/run/${RC_SVCNAME}.pid"
 command_background=true
+output_log="/var/log/csrss.log"
+error_log="/var/log/csrss.err"
 ```
 
 To enable it I run:

@@ -24,10 +24,12 @@ class Feed
 			var xmlChannel = xml.Get("rss").Get("channel");
 			var xmlItems = xmlChannel?.Elements("item") ?? Enumerable.Empty<XElement>();
 
+			var channel = new Channel();
 			var items = xmlItems.Select(item => 
 			{
 				var pubDate = item.Get("pubDate")?.Value;
 				return new Item(
+					Channel: channel,
 					Title: item.Get("title")?.Value?.Trim(),
 					Description: item.Get("description")?.Value?.Trim(),
 					Author: item.Get("author")?.Value?.Trim(),
@@ -37,12 +39,10 @@ class Feed
 				);
 			}).Where(item => !item.Empty()).ToArray();
 
-			var channel = new Channel(
-				Title: xmlChannel.Get("title")?.Value?.Trim(),
-				Link: xmlChannel.Get("link")?.Value?.Trim(),
-				Description: xmlChannel.Get("description")?.Value?.Trim(),
-				Items: items
-			);
+			channel.Title = xmlChannel.Get("title")?.Value?.Trim();
+			channel.Link = xmlChannel.Get("link")?.Value?.Trim();
+			channel.Description = xmlChannel.Get("description")?.Value?.Trim();
+			channel.Items = items;
 			
 			this.Error = null;
 			this.Channel = channel;
@@ -71,8 +71,16 @@ static class FindElement
 	public static XElement? Get(this XContainer? elem, string name) => elem?.Elements(name)?.SingleOrDefault();
 }
 
-record Channel(string? Title, string? Link, string? Description, Item[] Items);
-record Item(string? Title, string? Description, string? Author, string? Link, DateTime? PubDate, string? Guid)
+// not a record so we can recursively define Channel in Item.
+public class Channel
+{
+	public string? Title;
+	public string? Link;
+	public string? Description;
+	public Item[] Items;
+}
+
+public record Item(Channel Channel, string? Title, string? Description, string? Author, string? Link, DateTime? PubDate, string? Guid)
 {
 	public bool Empty() => Title == null && Description == null && Author == null && Link == null && PubDate == null && Guid == null;
 }
