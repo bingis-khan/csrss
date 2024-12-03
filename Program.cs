@@ -95,8 +95,58 @@ app.Run();
 return 0;
 
 
-async Task<Feed> GetFeed(string uri)
+async Task<Feed> GetFeed(string uriString)
 {
+	var uri = new Uri(uriString);
+
+	if (uri.Host.EndsWith("wordpress.com"))
+	{
+		// wordpress has pages.
+		// access them with ?paged=2
+		// right now, i don't use any query parameters, so i don't care about extra ones
+		Uri UriToPage(int pageId) => new UriBuilder(uri)
+		{
+			Query = $"paged={pageId}",
+		}.Uri;
+
+		var concurrentRequests = 10;
+		Feed? mainFeed = null;
+
+		for (var i = 1;; i += concurrentRequests)
+		{
+			// every 10 request, check if some of them failed (due to 404)
+			var feeds = await Task.WhenAll(Enumerable.Range(i, concurrentRequests).Select(async pageId => 
+			{
+				HttpResponseMessage? response = await http.GetAsync(UriToPage(pageId));
+
+				// if the response was okay return null. otherwise, return response.
+				if (!response.IsSuccessStatusCode)
+				{
+					return Feed.Failed(response.ToString());
+				}
+
+				var content = await response.Content.ReadAsStringAsync();
+				return new Feed(content);
+			}));
+
+			// right now, just terminate if the request couldn't execute. but, normally,
+			//  1. 404 should mean, that there is no more pages
+			//  2. some other error would mean, that there is some network error
+
+			// combine the feeds
+			var newCombinedFeed = feeds.Aggregate((l, r) => l.Compose(r));
+			mainFeed = mainFeed == null ? newCombinedFeed : mainFeed.Compose(newCombinedFeed);
+			
+			if (feeds.Any(feed => feed.Error != null))
+			{
+				break;
+			}
+		}
+		
+		return mainFeed;
+	}
+	
+	// default, non-atom rss
 	using var response = await http.GetAsync(uri);
 	if (!response.IsSuccessStatusCode)
 	{
@@ -105,5 +155,5 @@ async Task<Feed> GetFeed(string uri)
 	
 	var content = await response.Content.ReadAsStringAsync();
 	return new(content);
-}
+};
 

@@ -9,10 +9,10 @@ class Feed
 	public readonly string? Error;
 	public readonly Channel? Channel;
 
-	private Feed(string? error, XDocument? content)
+	private Feed(string? error, Channel? channel)
 	{
-		this.Error = error;
-		this.Channel = null;
+		Error = error;
+		Channel = channel;
 	}
 
 	public Feed(string content)
@@ -64,6 +64,20 @@ class Feed
 		return $"Feed {Channel.Title ?? "<no chan title>"} {description}:\n{items}";
 	}
 
+	public Feed Compose(Feed feed)
+	{
+		// creates a new feed from two feeds.
+		// literally just copies entries from the feed from the argument
+
+		// if any of them have an error, return the other one!
+		if (feed.Error != null) return this;
+		if (this.Error != null) return feed;
+
+		var newChannel = this.Channel.Compose(feed.Channel);
+		var newFeed = new Feed(null, newChannel);
+
+		return newFeed;
+	}
 }
 
 static class FindElement
@@ -78,6 +92,13 @@ public class Channel
 	public string? Link;
 	public string? Description;
 	public Item[] Items;
+
+	public Channel Compose(Channel other)
+	{
+		var newChannel = (Channel)this.MemberwiseClone();
+		newChannel.Items = Items.Concat(other.Items).Select(item => item with { Channel = newChannel }).ToArray();
+		return newChannel;
+	}
 }
 
 public record Item(Channel Channel, string? Title, string? Description, string? Author, string? Link, DateTime? PubDate, string? Guid)
