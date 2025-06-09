@@ -39,6 +39,7 @@ var http = new HttpClient();
 
 // set up periodic update
 var seconds = 60 * 30;
+// var seconds = 5;
 var ct = new CancellationTokenSource().Token;
 
 // This collects feeds from multiple sources.
@@ -52,7 +53,17 @@ foreach (var link in links)
 	{
 		while (!ct.IsCancellationRequested)
 		{
-			feeds[link] = await GetFeed(link);
+			try
+			{
+				feeds[link] = await GetFeed(link);
+			}
+			catch (Exception e)
+			{
+				// GetFeed throws exception when there is any sort of error.
+				// It might be a too many requests thing or it may be down for a second, whatever - ignore.
+				Console.WriteLine($"GetFeed failed for {link}");
+				Console.WriteLine(e);
+			}
 			await Task.Delay(TimeSpan.FromSeconds(seconds), ct);
 		}
 	});
@@ -77,13 +88,17 @@ app.MapGet("/", (HttpContext ctx) =>
 	}
 
 	// TODO: fix null pointer deref
-	var feedItems = feeds.Values.SelectMany(c => c.Channel.Items).ToArray();
-	Array.Sort(feedItems, (r, l) => DateTime.Compare(l.PubDate.Value, r.PubDate.Value));
+	var feedItems = feeds.Values.SelectMany(f => f.Channel.Items.Select(c => (f.DateRetrieved, c))).ToArray();
+	Array.Sort(feedItems, (r, l) => DateTime.Compare(l.c.PubDate.Value, r.c.PubDate.Value));
 	var items = e("ul",
-		feedItems.Where(item => item.Title != null && item.Link != null).Select(item => e("li",
-			e("a", attr("href", item.Channel.Link), $"({item.Channel.Title ?? item.Channel.Link})"), 
-			e("a", attr("href", item.Link), item.PubDate.Value.ToString("dd/MM/yy "), item.Title)
-		))
+		feedItems.Where(item => item.c.Title != null && item.c.Link != null).Select(itemAndDate => {
+			var dateRetrieved = itemAndDate.DateRetrieved.ToString("G");
+			var item = itemAndDate.c;
+			return e("li",
+					e("a", attr("href", item.Channel.Link), $"({item.Channel.Title ?? item.Channel.Link})"), 
+					e("a", attr("href", item.Link), item.PubDate.Value.ToString("dd/MM/yy "), item.Title),
+					e("span", dateRetrieved));
+		})
 	);
 
 	var html = new XDocument(e("html", e("body", items)));

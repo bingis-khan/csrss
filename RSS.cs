@@ -8,11 +8,13 @@ class Feed
 {
 	public readonly string? Error;
 	public readonly Channel? Channel;
+	public readonly DateTime DateRetrieved;
 
 	private Feed(string? error, Channel? channel)
 	{
 		Error = error;
 		Channel = channel;
+		DateRetrieved = DateTime.Now;
 	}
 
 	public Feed(string content)
@@ -44,6 +46,7 @@ class Feed
 			channel.Description = xmlChannel.Get("description")?.Value?.Trim();
 			channel.Items = items;
 			
+			this.DateRetrieved = DateTime.Now;
 			this.Error = null;
 			this.Channel = channel;
 		}
